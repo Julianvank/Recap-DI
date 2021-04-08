@@ -1,42 +1,83 @@
 # Recap DI 
 
-## 1. Stored Procedure
-### How Stored Procedures word
+## 1.A Stored Procedure
+### How Stored Procedures work
+
+### Progammability
 ```sql
-	CREATE PROCEDURE SP_naam
-		@var INT
-	AS
-	BEGIN
-		SET NOCOUNT ON
-		BEGIN TRY
-			IF EXISTS(SELECT statement)
-				BEGIN
-	
-					SELECT statement
-	
-				END
-			ELSE
-				BEGIN
-					;THROW 50001, 'foutmelding', 1
-				END
-		END TRY
-	
-		BEGIN CATCH
-			DECLARE @errormessage VARCHAR(2000) =
-				'Error occured in sproc '''
-				 + '''. Original message: '''
-				  + ERROR_MESSAGE() +
-				'''';
-			THROW 50000, @errormessage, 1;
-		END CATCH
+CREATE PROCEDURE SP_naam
+@var INT
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+	 RETURN
 	END
+	
+	SET NOCOUNT ON
+	BEGIN TRY
+		IF EXISTS(SELECT statement)
+			BEGIN
+				--Logic
+			END
+		ELSE
+		BEGIN
+			;THROW 50001, 'foutmelding', 1
+		END
+	END TRY
+	
+	BEGIN CATCH
+		DECLARE @errormessage VARCHAR(2000) =
+			'Error occured in sproc '''
+			 + '''. Original message: '''
+			  + ERROR_MESSAGE() +
+			'''';
+		THROW 50000, @errormessage, 1;
+	END CATCH
+END
+```
+#### Rowcount
+Stored Procedures and Triggers can protect a lot of business rules. It so happens that it may have to access many tables and rows. That's why you want set the 'x rows affected' statements off. This is done by using the following code:
+```sql
+set nocount on
 ```
 
-## 1. Triggers
+#### Set nocount on
+SET NOCOUNT ON prevents the sending of DONE_IN_PROC messages to the client for each statement in a stored procedure. For stored procedures that contain several statements that do not return much actual data, or for procedures that contain Transact-SQL loops, setting SET NOCOUNT to ON can provide a significant performance boost, because network traffic is greatly reduced.
+
+## 1.B Triggers
 ### 1.1. How triggers work
 A [trigger](https://docs.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql?view=sql-server-ver15) is a special type of stored procedure that automatically runs when an event occurs in the database server. DML triggers run when a user tries to modify data through a data manipulation language (DML) event. DML events are INSERT, UPDATE, or DELETE statements on a table or view. These triggers fire when any valid event fires, whether table rows are affected or not. If multiple triggers are assigned to a table or view with the same DML event, all of those triggers fire, but the order is non-configurable (unless you use a special sp in modern sql server versions, this is not teaching material).
 
 ### 1.2. Progammability
+```sql
+CREATE OR ALTER TRIGGER tr_naam
+on dbo.dbname
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+	 RETURN
+	END
+
+	set nocount on
+
+	BEGIN
+	  BEGIN TRY
+	   	IF EXISTS(SELECT statement)
+	   	THROW 50001, 'Foutmelding.', 1
+	  END TRY
+
+	  BEGIN CATCH
+		DECLARE @errormessage VARCHAR(2000) =
+			'Error occured in sproc '''
+			 + '''. Original message: '''
+			 + ERROR_MESSAGE() +
+			 '''';
+		THROW 50000, @errormessage, 1;
+	END CATCH
+END
+```
+
 #### After / instead of
 **After**  
 Specifies when the trigger is fired. In this case it fires after the specified DML events.  
@@ -52,11 +93,6 @@ The deleted table is a special table exclusively accessible in a trigger. It con
 #### Update()
 Returns a Boolean value that indicates whether an INSERT or UPDATE attempt was made on a specified column of a table or view. UPDATE() is used anywhere inside the body of a Transact-SQL INSERT or UPDATE trigger to test whether the trigger should execute certain actions.
 
-#### Rowcount
-Triggers can protect a lot of business rules. It so happens that it may have to access many tables and rows. That's why you want set the 'x rows affected' statements off. This is done by using the following code:
-```sql
-set nocount on
-```
 
 #### Set-oriented
 Triggers are fired only once for every DML event. Because these events can effect multiple rows at the same time, you want to program your trigger _set-oriented_. This is done by making use of set-based operators, like _exists_, _intersect_, _union_ and _except_. This is also done by making use of the _inserted_ and _deleted_ tables.
