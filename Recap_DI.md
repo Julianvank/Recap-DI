@@ -1,4 +1,37 @@
 # Recap DI 
+
+## 1. Stored Procedure
+### How Stored Procedures word
+```sql
+	CREATE PROCEDURE SP_naam
+		@var INT
+	AS
+	BEGIN
+		SET NOCOUNT ON
+		BEGIN TRY
+			IF EXISTS(SELECT statement)
+				BEGIN
+	
+					SELECT statement
+	
+				END
+			ELSE
+				BEGIN
+					;THROW 50001, 'foutmelding', 1
+				END
+		END TRY
+	
+		BEGIN CATCH
+			DECLARE @errormessage VARCHAR(2000) =
+				'Error occured in sproc '''
+				 + '''. Original message: '''
+				  + ERROR_MESSAGE() +
+				'''';
+			THROW 50000, @errormessage, 1;
+		END CATCH
+	END
+```
+
 ## 1. Triggers
 ### 1.1. How triggers work
 A [trigger](https://docs.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql?view=sql-server-ver15) is a special type of stored procedure that automatically runs when an event occurs in the database server. DML triggers run when a user tries to modify data through a data manipulation language (DML) event. DML events are INSERT, UPDATE, or DELETE statements on a table or view. These triggers fire when any valid event fires, whether table rows are affected or not. If multiple triggers are assigned to a table or view with the same DML event, all of those triggers fire, but the order is non-configurable (unless you use a special sp in modern sql server versions, this is not teaching material).
